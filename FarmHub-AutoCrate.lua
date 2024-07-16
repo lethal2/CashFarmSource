@@ -280,7 +280,7 @@ local MadeBefore = Leaderstats:WaitForChild("Money").Value
 -- 		-- 	end
 -- 		-- end)
 -- 	end
-
+-- ????? what the fuck 
 function GetRejoinPrefferedFunction(...)
 	local prnt = print
 	local pcll = pcall
@@ -530,61 +530,32 @@ function GetRejoinPrefferedFunction(...)
 end
 
 local Queued = false
-function ServerSwitch()
-	if not Queued then
-		Queued = true
-	
-		local ScriptFile = GetDirectory() .. "/AutoCrateLoader.lua"
-		local ScriptSaved = game:HttpGet("https://farmhub.lol/AutoCrate.lua")
-		SaveFile(tostring(ScriptFile), ScriptSaved)
-		SaveFile("AutoCrateSettings.json", HttpService:JSONEncode(Settings))
-	
-		local Queue = ""
-		
-		if LPH_OBFUSCATED then 
-			Queue = [[getgenv().StartingMoney = ]] .. getgenv().StartingMoney .. [[
-				getgenv().StartingTime = ]] .. getgenv().StartingTime .. [[
-				script_key = "]] .. script_key .. [[";
-				local success, error = pcall(function()
-					loadstring(readfile("]] .. tostring(ScriptFile) .. [["))()
-				end)
-		
-				if not success then
-					if not game:IsLoaded() then 
-						game.Loaded:Wait() 
-						task.wait(1) 
-					end
-		
-					loadstring(game:HttpGet("https://farmhub.lol/AutoCrate.lua"))()
-				end
-			]]
-		else
-			-- for debugging
-			Queue = [[getgenv().StartingMoney = ]] .. getgenv().StartingMoney .. [[
-				getgenv().StartingTime = ]] .. getgenv().StartingTime .. [[
-				script_key = "]] .. script_key .. [[";
-			]]
-		end
+local ServerSwitch()
+	pcall(function()
+					local Servers = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
+					local Server, Next = nil, nil
 
-		queue_on_teleport(Queue)
-	end
-	
-	GetRejoinPrefferedFunction({
-		SizeSort = "asc",
-		MinPlayers = (Settings.SmallServer and 1 or 12),
-		MaxPlayers = (Settings.SmallServer and 12 or 28),
-		ExcludeFull = true,
-		ExcludeSame = true,
-		MinFps = 0,
-		MaxPing = 0,
-		FpsSortWeight = 0,
-		PingSortWeight = 0,
-		SizeSortWeight = 0,
-		PrintVerbose = false,
-		PrintPrefixTime = false,
-		PrintUseConsoleWindow = false,
-	})
-end
+					local function ListServers(cursor)
+						local Raw = game:HttpGet(Servers .. ((cursor and "&cursor="..cursor) or ""))
+
+						return HttpService:JSONDecode(Raw)
+					end
+
+					repeat
+						local Servers = ListServers(Next)
+						Server = Servers.data[math.random(1, (#Servers.data / 3))]
+						Next = Servers.nextPageCursor
+					until Server
+
+					if Server.playing < Server.maxPlayers and Server.id ~= game.JobId then
+						TeleportService:TeleportToPlaceInstance(game.PlaceId, Server.id, player)
+					end
+
+					task.wait(10)
+				end)
+			end
+		end)
+
 
 -------------------->> Failed Loading <<--------------------
 
